@@ -1,6 +1,8 @@
 import pygame
 import random
 
+from pygame.draw import line
+
 colors = [
     (0, 0, 0),
     (120, 37, 179),
@@ -64,10 +66,24 @@ class Fretris:
 
     def go_down(self):
         self.Figure.y += 1
+        if self.intersects():
+            self.Figure.y -= 1
+            self.freeze()
 
     def side(self, dx):
         old_x = self.Figure.x
-        self.Figure.x += dx
+        edge = False
+        for i in range(4):
+            for j in range(4):
+                p = i*4+j
+                if p in self.Figure.image():
+                    if j + self.Figure.x + dx > self.width - 1 or \
+                        j + self.Figure.x + dx < 0:
+                        edge = True
+        if not edge:
+            self.Figure.x += dx
+        if self.intersects():
+            self.Figure.x = old_x
 
     def left(self):
         self.side(-1)
@@ -76,7 +92,53 @@ class Fretris:
         self.side(1)
 
     def down(self):
-        pass
+        while not self.intersects():
+            self.Figure.y += 1
+        self.Figure.y -= 1
+        self.freeze()
+
+    def rotate(self):
+        old_rotation = self.Figure.rotation
+        self.Figure.rotate()
+        if self.intersects():
+            self.Figure.rotation = old_rotation
+
+    def intersects(self):
+        intersection = False
+        for i in range(4):
+            for j in range(4):
+                p = i * 4 + j
+                if p in self.Figure.image():
+                    if i + self.Figure.y > self.height - 1 or \
+                        i + self.Figure.y < 0 or \
+                            self.field[i + self.Figure.y][j + self.Figure.x] > 0:
+                            intersection = True
+        return intersection
+
+    def freeze(self):
+        for i in range(4):
+            for j in range(4):
+                p = i * 4 + j
+                if p in self.Figure.image():
+                    self.field[i + self.Figure.y][j + self.Figure.x] = self.Figure.type + 1
+        self.break_lines()
+        self.new_figure()
+        if self.intersects():
+            self.state = "gameover"
+
+    def break_lines(self):
+        lines = 0
+        for i in range(1, self.height):
+            zeros = 0
+            for j in range(self.width):
+                if self.field[i][j] == 0:
+                    zeros += 1
+            if zeros == 0:
+                lines += 1
+                for i2 in range(i, 1, -1):
+                    for j in range(self.width):
+                        self.field[i2][j] = self.field[i2 - 1][j]
+            self.score += lines ** 2
 
 pygame.init()
 screen = pygame.display.set_mode((380,670))
@@ -147,6 +209,16 @@ while not done:
                 if p in game.Figure.image():
                     pygame.draw.rect(screen, game.Figure.color,
                                      [30+(j + game.Figure.x)*zoom, 30+(i + game.Figure.y)*zoom, zoom, zoom])
+
+    gameover_font = pygame.font.SysFont('Ubuntu', 65, True, False)
+    text_gameover = gameover_font.render("GAME OVER \n Press ESC", True, (255,255,12))
+
+    if game.state == "gameover":
+        screen.blit(text_gameover, [30, 250])
+
+    score_font = pygame.font.SysFont('Ubuntu', 15, True, False)
+    text_score = score_font.render("Score: " + str(game.score), True, (12, 12, 12))
+    screen.blit(text_score, [0,0])
 
     pygame.display.flip()
     clock.tick(fps)
