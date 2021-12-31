@@ -1,4 +1,6 @@
 import pygame
+import Fretris
+import Figure
 import random
 
 from pygame.draw import line
@@ -13,133 +15,6 @@ colors = [
     (180, 37, 179)
 ]
 
-class Figure:
-    x = 0
-    y = 0
-
-    Figures = [
-        [[1,5,9,13], [4,5,6,7]], # I
-        [[0,4,5,6], [1,2,5,9], [1,5,9,8], [4,5,6,10]], # J
-        [[1,2,6,10], [5,6,7,9], [2,6,10,11], [3,5,6,7]], # L
-        [[1,2,5,6]], # Block
-        [[6,7,9,10], [1,5,6,10]], # S
-        [[1,4,5,6],[1,4,5,9], [4,5,6,9], [1,5,6,9]], # T
-        [[4,5,9,10], [2,6,5,9]] # Z
-    ]
-
-    def __init__(self, x_coord, y_coord):
-        self.x = x_coord
-        self.y = y_coord
-        self.type = random.randint(0, len(self.Figures)-1)
-        self.color = colors[self.type+1]
-        self.rotation = 0
-
-    def rotate(self):
-        self.rotation = (self.rotation + 1) % len(self.Figures[self.type])
-
-    def image(self):
-        return self.Figures[self.type][self.rotation]
-
-class Fretris:
-    height = 0
-    width = 0
-    field = []
-    score = 0
-    state = "start"
-    Figure = None
-
-    def __init__(self, _height, _width):
-        self.height = _height
-        self.width = _width
-        self.field = []
-        self.score = 0
-        self.state = "start"
-        for i in range(_height):
-            new_line = []
-            for j in range(_width):
-                new_line.append(0)
-            self.field.append(new_line)
-        self.new_figure()
-
-    def new_figure(self):
-        self.Figure = Figure(3, 0)
-
-    def go_down(self):
-        self.Figure.y += 1
-        if self.intersects():
-            self.Figure.y -= 1
-            self.freeze()
-
-    def side(self, dx):
-        old_x = self.Figure.x
-        edge = False
-        for i in range(4):
-            for j in range(4):
-                p = i*4+j
-                if p in self.Figure.image():
-                    if j + self.Figure.x + dx > self.width - 1 or \
-                        j + self.Figure.x + dx < 0:
-                        edge = True
-        if not edge:
-            self.Figure.x += dx
-        if self.intersects():
-            self.Figure.x = old_x
-
-    def left(self):
-        self.side(-1)
-
-    def right(self):
-        self.side(1)
-
-    def down(self):
-        while not self.intersects():
-            self.Figure.y += 1
-        self.Figure.y -= 1
-        self.freeze()
-
-    def rotate(self):
-        old_rotation = self.Figure.rotation
-        self.Figure.rotate()
-        if self.intersects():
-            self.Figure.rotation = old_rotation
-
-    def intersects(self):
-        intersection = False
-        for i in range(4):
-            for j in range(4):
-                p = i * 4 + j
-                if p in self.Figure.image():
-                    if i + self.Figure.y > self.height - 1 or \
-                        i + self.Figure.y < 0 or \
-                            self.field[i + self.Figure.y][j + self.Figure.x] > 0:
-                            intersection = True
-        return intersection
-
-    def freeze(self):
-        for i in range(4):
-            for j in range(4):
-                p = i * 4 + j
-                if p in self.Figure.image():
-                    self.field[i + self.Figure.y][j + self.Figure.x] = self.Figure.type + 1
-        self.break_lines()
-        self.new_figure()
-        if self.intersects():
-            self.state = "gameover"
-
-    def break_lines(self):
-        lines = 0
-        for i in range(1, self.height):
-            zeros = 0
-            for j in range(self.width):
-                if self.field[i][j] == 0:
-                    zeros += 1
-            if zeros == 0:
-                lines += 1
-                for i2 in range(i, 1, -1):
-                    for j in range(self.width):
-                        self.field[i2][j] = self.field[i2 - 1][j]
-            self.score += lines ** 2
-
 pygame.init()
 screen = pygame.display.set_mode((380,670))
 pygame.display.set_caption("Fretris")
@@ -150,7 +25,7 @@ clock = pygame.time.Clock()
 counter = 0
 zoom = 30
 
-game = Fretris(20, 10)
+game = Fretris.Fretris(20, 10)
 
 pressing_down = False
 pressing_left = False
